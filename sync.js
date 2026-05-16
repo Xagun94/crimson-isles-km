@@ -190,14 +190,7 @@ async function main() {
   const slimJson = JSON.stringify({syncedAt:now,totalProfiles:slim.length,profiles:slim},null,2);
   await putFile(GITHUB_REPO, 'profiles-slim.json', slimJson, msg, 'gh-pages');
 
-  // Copiază index.html pe gh-pages
-  const indexPath = path.join(__dirname, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    const html = fs.readFileSync(indexPath, 'utf8');
-    await putFile(GITHUB_REPO, 'index.html', html, msg, 'gh-pages');
-  } else {
-    console.warn('   index.html nu a fost găsit lângă sync.js — nu s-a deploiat UI-ul');
-  }
+  // index.html e gestionat manual pe gh-pages — nu se suprascrie automat
 
   // Activează GitHub Pages dacă nu e activ
   const pages = await github('GET', `/repos/${GITHUB_REPO}/pages`);
@@ -206,8 +199,69 @@ async function main() {
     console.log('   GitHub Pages activat');
   }
 
+  // Procesare Claude — extrage date structurate
+  console.log('\n🤖 Procesare Claude...');
+  const processed = await processWithClaude(slim);
+  console.log(`   ${processed.length} profile-uri procesate`);
+
+  // Salvează processed profiles pe gh-pages
+  if (processed.length > 0) {
+    const procJson = JSON.stringify({ syncedAt: now, totalProfiles: processed.length, profiles: processed }, null, 2);
+    await putFile(GITHUB_REPO, 'processed-profiles.json', procJson, msg, 'gh-pages');
+  }
+
   const [owner, repoName] = GITHUB_REPO.split('/');
-  console.log(`\n✨ Gata! Aplicația KM: https://${owner.toLowerCase()}.github.io/${repoName}/`);
+  console.log(`\n✨ Done! KM app: https://${owner.toLowerCase()}.github.io/${repoName}/`);
 }
 
-main().catch(e => { console.error('EROARE:', e.message); process.exit(1); });
+main().catch(e => { console.error('ERROR:', e.message); process.exit(1); });
+
+// ── Claude processing (runs in GitHub Actions) ────────────────────────────────
+
+async function processWithClaude(profiles) {
+  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_KEY) { console.warn('   ANTHROPIC_API_KEY lipsa — skip procesare'); return []; }
+
+  const SYS = 'You are an assistant for a Path of Titans server. Extract information from a dinosaur profile and return ONLY valid JSON, no markdown, no backticks.\nExact structure:\n{"name":"string","tier":"string","slots":"string","combatWeight":"string","passiveGrowthTime":"string","lifestyle":"string","description":"string","groupLimit":["string"],"hunting":["string"],"scavenging":["string"],"cannibalism":"string","nesting":["string"],"specialRules":["string"],"rpNotes":["string"]}\nIf a field does not exist, use "" or []. tier = Apex/Sub-Apex/High/Mid/Low/Semi-Aquatic/Aquatic/Flying/Herbivore.';
+
+  async function callClaude(name, text) {
+    const res = await request({
+      hostname: 'api.anthropic.com',
+      path: '/v1/messages',
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json'
+      }
+    }, JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1000,
+      system: SYS,
+      messages: [{ role: 'user', content: `Dinosaur: ${name}\n\nContent:\n${text.substring(0, 3000)}` }]
+    }));
+    if (res.status !== 200) throw new Error(`API ${res.status}`);
+    const txt = (res.body.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+    return JSON.parse(txt.replace(/```json|```/g, '').trim());
+  }
+
+  const processed = [];
+  for (let i = 0; i < profiles.length; i++) {
+    const p = profiles[i];
+    process.stdout.write(`   (${i+1}/${profiles.length}) ${p.threadName} ... `);
+    try {
+      const result = await callClaude(p.threadName, p.combinedText || '');
+      result.threadId = p.threadId;
+      result.channelId = p.channelId;
+      result.channelName = p.channelName;
+      processed.push(result);
+      console.log('✓');
+    } catch(e) {
+      console.log(`✗ ${e.message}`);
+      // Păstrăm profilul neprocesat cu datele de bază
+      processed.push({ name: p.threadName, tier: '', threadId: p.threadId, channelId: p.channelId, channelName: p.channelName });
+    }
+    await sleep(300);
+  }
+  return processed;
+}
