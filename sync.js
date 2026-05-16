@@ -151,18 +151,39 @@ async function getFileSha(repo, path) {
   return res.status === 200 ? res.body.sha : null;
 }
 
-async function saveToRepo(repo, profiles) {
-  const filePath = 'data/profiles.json';
-  const content = JSON.stringify({ syncedAt: new Date().toISOString(), totalProfiles: profiles.length, profiles }, null, 2);
+
+async function saveFile(repo, filePath, content, commitMsg) {
   const sha = await getFileSha(repo, filePath);
   const payload = {
-    message: `sync: ${profiles.length} profile-uri [${new Date().toISOString()}]`,
+    message: commitMsg,
     content: Buffer.from(content).toString('base64'),
     ...(sha ? { sha } : {})
   };
   const res = await githubRequest('PUT', `/repos/${repo}/contents/${filePath}`, payload);
-  if (res.status !== 200 && res.status !== 201) throw new Error(`Eroare salvare: ${res.status}`);
-  console.log(`\nSalvat: https://raw.githubusercontent.com/${repo}/main/${filePath}`);
+  if (res.status !== 200 && res.status !== 201) throw new Error(`Eroare salvare ${filePath}: ${res.status}`);
+}
+
+async function saveToRepo(repo, profiles) {
+  const now = new Date().toISOString();
+  const msg = `sync: ${profiles.length} profile-uri [${now}]`;
+
+  // Fișier complet (cu rawMessages) — folosit ca backup/referință
+  await saveFile(repo, 'data/profiles.json',
+    JSON.stringify({ syncedAt: now, totalProfiles: profiles.length, profiles }, null, 2),
+    msg
+  );
+
+  // Fișier slim (fără rawMessages) — folosit de aplicație, ~3x mai mic
+  const slim = profiles.map(function(p) {
+    const { rawMessages, ...rest } = p;
+    return rest;
+  });
+  await saveFile(repo, 'data/profiles-slim.json',
+    JSON.stringify({ syncedAt: now, totalProfiles: slim.length, profiles: slim }, null, 2),
+    msg
+  );
+
+  console.log(`\nSalvat slim: https://raw.githubusercontent.com/${repo}/main/data/profiles-slim.json`);
 }
 
 async function main() {
