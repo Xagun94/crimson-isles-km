@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ro">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -182,7 +182,7 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0}
       <span id="stxt">—</span>
     </div>
     <button class="btn sm" onclick="showConfig()">⚙ Config</button>
-    <button class="btn sm" onclick="showProcess()">✦ Process</button>
+    <button class="btn sm" onclick="showProcess()">✦ Procesează</button>
     <button class="btn sm primary" id="btn-sync" onclick="doSync()" disabled>↻ Sync</button>
   </div>
 </header>
@@ -192,7 +192,7 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0}
   <aside class="sidebar">
     <div class="sidebar-section">
       <div class="search-wrap">
-        <input type="text" id="search" placeholder="Search dinosaur..." oninput="filterAndRender()"/>
+        <input type="text" id="search" placeholder="Caută dinozaur..." oninput="filterAndRender()"/>
       </div>
     </div>
     <div class="sidebar-section">
@@ -200,7 +200,7 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0}
       <div class="filter-group" id="tier-filter"></div>
     </div>
     <div class="sidebar-section">
-      <div class="sidebar-title">Channel</div>
+      <div class="sidebar-title">Canal</div>
       <div class="filter-group" id="ch-filter"></div>
     </div>
     <div class="sidebar-nav" id="dino-list"></div>
@@ -210,14 +210,14 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0}
   <div class="content" id="content">
     <div class="state" id="empty-state">
       <div class="state-icon">🦖</div>
-      <div class="state-title">No profiles loaded</div>
-      <div class="state-sub">Click <strong>Config</strong> to configure the data URL, then <strong>Sync</strong> to load.</div>
-      <button class="btn primary" onclick="showConfig()">⚙ Configure</button>
+      <div class="state-title">Niciun profil încărcat</div>
+      <div class="state-sub">Click pe <strong>Config</strong> pentru a configura URL-ul datelor, apoi <strong>Sync</strong> pentru a le încărca.</div>
+      <button class="btn primary" onclick="showConfig()">⚙ Configurează</button>
     </div>
     <div class="state" id="loading-state" style="display:none">
       <div class="spinner-lg"></div>
-      <div class="state-title">Syncing...</div>
-      <div class="state-sub" id="loading-sub">Fetching data...</div>
+      <div class="state-title">Se sincronizează...</div>
+      <div class="state-sub" id="loading-sub">Se preiau datele...</div>
     </div>
     <div id="grid-view" style="display:none;flex-direction:column">
       <div class="grid-header">
@@ -230,17 +230,17 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0}
       <div class="grid" id="card-grid"></div>
     </div>
     <div class="detail" id="detail-view">
-      <button class="detail-back" onclick="closeDetail()">← Back to grid</button>
+      <button class="detail-back" onclick="closeDetail()">← Înapoi la grilă</button>
     </div>
     <div class="process-panel" id="process-view">
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em">Claude Processing</div>
-        <button class="detail-back" onclick="closeProcess()">← Back</button>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em">Procesare Claude</div>
+        <button class="detail-back" onclick="closeProcess()">← Înapoi</button>
       </div>
-      <p style="font-size:13px;color:var(--text2)">Claude extracts structured data from each raw profile: tier, group limit, combat weight, hunting targets, cannibalism rules, nesting, special rules, and RP notes.</p>
+      <p style="font-size:13px;color:var(--text2)">Claude extrage din fiecare profil brut: tier, group limit, combat weight, hunting, cannibalism, nesting, reguli speciale, RP notes.</p>
       <div style="display:flex;gap:8px">
-        <button class="btn primary" id="bpa" onclick="processAll(false)">✦ Process all ↗</button>
-        <button class="btn" id="bpn" onclick="processAll(true)">✦ New profiles only ↗</button>
+        <button class="btn primary" id="bpa" onclick="processAll(false)">✦ Procesează toate ↗</button>
+        <button class="btn" id="bpn" onclick="processAll(true)">✦ Doar profile noi ↗</button>
       </div>
       <div class="progress-wrap"><div class="progress-bar" id="ppb" style="width:0%"></div></div>
       <div style="font-size:12px;color:var(--text3)" id="ppl"></div>
@@ -253,18 +253,18 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0}
 <!-- Config panel -->
 <div class="config-panel" id="config-panel">
   <div class="config-box">
-    <div class="config-title">Sync Configuration</div>
+    <div class="config-title">Configurare Sync</div>
     <div class="config-field">
       <label>URL profiles-slim.json</label>
       <input type="text" id="cfg-url" placeholder="https://raw.githubusercontent.com/Xagun94/crimson-isles-km/main/data/profiles-slim.json"/>
     </div>
     <div class="config-hint">
-      The URL of file <code style="font-family:'DM Mono',monospace;background:var(--bg3);padding:1px 5px;border-radius:3px">data/profiles-slim.json</code> from your GitHub repo.
+      URL-ul fișierului <code style="font-family:'DM Mono',monospace;background:var(--bg3);padding:1px 5px;border-radius:3px">data/profiles-slim.json</code> din repo-ul tău GitHub.
     </div>
     <div id="cfg-msg"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" onclick="closeConfig()">Cancel</button>
-      <button class="btn primary" onclick="saveConfig()">Save & Sync</button>
+      <button class="btn" onclick="closeConfig()">Anulează</button>
+      <button class="btn primary" onclick="saveConfig()">Salvează & Sync</button>
     </div>
   </div>
 </div>
@@ -320,7 +320,7 @@ function showConfig(){document.getElementById('config-panel').classList.add('ope
 function closeConfig(){document.getElementById('config-panel').classList.remove('open');}
 function saveConfig(){
   var url=document.getElementById('cfg-url').value.trim();
-  if(!url){document.getElementById('cfg-msg').innerHTML='<div class="config-msg err">Please enter a URL.</div>';return;}
+  if(!url){document.getElementById('cfg-msg').innerHTML='<div class="config-msg err">Introdu URL-ul.</div>';return;}
   localStorage.setItem(URL_KEY,url);
   document.getElementById('btn-sync').disabled=false;
   closeConfig();doSync();
@@ -360,7 +360,7 @@ function renderFilters(){
   var tiers={};
   profiles.forEach(function(p){var t=p.tier||'?';tiers[t]=(tiers[t]||0)+1;});
   var tf=document.getElementById('tier-filter');
-  tf.innerHTML='<div class="filter-item'+(activeTier==='all'?' active':'')+'" onclick="setTier(\'all\')"><span>All</span><span class="count">'+profiles.length+'</span></div>';
+  tf.innerHTML='<div class="filter-item'+(activeTier==='all'?' active':'')+'" onclick="setTier(\'all\')"><span>Toate</span><span class="count">'+profiles.length+'</span></div>';
   Object.keys(tiers).sort().forEach(function(t){
     tf.innerHTML+='<div class="filter-item'+(activeTier===t?' active':'')+'" onclick="setTier(\''+esc(t)+'\')"><span style="display:flex;align-items:center;gap:6px"><span class="tier-dot '+tierClass(t)+'"></span>'+esc(t)+'</span><span class="count">'+tiers[t]+'</span></div>';
   });
@@ -368,9 +368,9 @@ function renderFilters(){
   var chs={};
   profiles.forEach(function(p){var c=p.channelName||p.channelId||'?';chs[c]=(chs[c]||0)+1;});
   var cf=document.getElementById('ch-filter');
-  cf.innerHTML='<div class="filter-item'+(activeCh==='all'?' active':'')+'" onclick="setCh(\'all\')"><span>All</span><span class="count">'+profiles.length+'</span></div>';
+  cf.innerHTML='<div class="filter-item'+(activeCh==='all'?' active':'')+'" onclick="setCh(\'all\')"><span>Toate</span><span class="count">'+profiles.length+'</span></div>';
   Object.keys(chs).sort().forEach(function(c){
-    cf.innerHTML+='<div class="filter-item'+(activeCh===c?' active':'')+'" onclick="setCh(\''+esc(c)+'\')"><span>'+esc(c.replace('',''))+'</span><span class="count">'+chs[c]+'</span></div>';
+    cf.innerHTML+='<div class="filter-item'+(activeCh===c?' active':'')+'" onclick="setCh(\''+esc(c)+'\')"><span>'+esc(c.replace('species-profiles-',''))+'</span><span class="count">'+chs[c]+'</span></div>';
   });
 }
 
@@ -380,22 +380,22 @@ function renderList(){
     var ri=profiles.indexOf(p);
     return '<div class="dino-list-item'+(activeProfile===ri?' active':'')+'" onclick="openDetail('+ri+')"><span class="tier-dot '+tierClass(p.tier)+'"></span><span class="dino-name-sm">'+esc(p.name||'?')+'</span><span class="dino-tier-sm">'+(p.slots||'')+'</span></div>';
   }).join('');
-  document.getElementById('dino-list').innerHTML=html||'<div style="padding:8px;font-size:12px;color:var(--text3)">No results</div>';
+  document.getElementById('dino-list').innerHTML=html||'<div style="padding:8px;font-size:12px;color:var(--text3)">Niciun rezultat</div>';
 }
 
 function renderGrid(){
   var filtered=getFiltered();
-  document.getElementById('grid-count').textContent=filtered.length+' profiles';
+  document.getElementById('grid-count').textContent=filtered.length+' profile-uri';
   var html=filtered.map(function(p){
     var ri=profiles.indexOf(p);
     return '<div class="card" onclick="openDetail('+ri+')">'+
       '<div class="card-tier"><span class="tier-dot '+tierClass(p.tier)+'"></span><span style="color:var(--text2)">'+esc(p.tier||'?')+'</span></div>'+
       '<div class="card-name">'+esc(p.name||'?')+'</div>'+
       '<div class="card-meta">'+(p.combatWeight?p.combatWeight+' CW':'')+(p.slots?' · '+p.slots:'')+'</div>'+
-      (p.channelName?'<div class="card-channel">'+esc(p.channelName.replace('',''))+'</div>':'')+
+      (p.channelName?'<div class="card-channel">'+esc(p.channelName.replace('species-profiles-',''))+'</div>':'')+
       '</div>';
   }).join('');
-  document.getElementById('card-grid').innerHTML=html||'<div style="padding:32px;color:var(--text3);grid-column:1/-1;text-align:center">No profiles processed yet. Click "Process".</div>';
+  document.getElementById('card-grid').innerHTML=html||'<div style="padding:32px;color:var(--text3);grid-column:1/-1;text-align:center">Niciun profil procesat. Click pe "Procesează".</div>';
 }
 
 function setTier(t){activeTier=t;filterAndRender();}
@@ -415,12 +415,12 @@ function openDetail(idx){
   if(p.lifestyle) stats+='<div class="stat-box"><div class="stat-label">Lifestyle</div><div class="stat-value">'+esc(p.lifestyle)+'</div></div>';
   if(p.slots) stats+='<div class="stat-box"><div class="stat-label">Slot Tier</div><div class="stat-value">'+esc(p.slots)+'</div></div>';
 
-  dv.innerHTML='<button class="detail-back" onclick="closeDetail()">← Back to grid</button>'+
+  dv.innerHTML='<button class="detail-back" onclick="closeDetail()">← Înapoi la grilă</button>'+
     '<div class="detail-header"><div>'+
     '<div class="detail-title">'+esc(p.name||'?')+'</div>'+
     '<div class="detail-badges">'+
     '<span class="badge '+badgeClass(p.tier)+'">'+(p.tier||'?')+'</span>'+
-    (p.channelName?'<span class="badge badge-x">'+esc(p.channelName.replace('',''))+'</span>':'')+
+    (p.channelName?'<span class="badge badge-x">'+esc(p.channelName.replace('species-profiles-',''))+'</span>':'')+
     '</div></div></div>'+
     (stats?'<div class="stats-grid">'+stats+'</div>':'')+
     (p.description?'<div class="desc-text">'+esc(p.description)+'</div>':'')+
@@ -429,7 +429,7 @@ function openDetail(idx){
     (p.cannibalism?'<div class="section"><div class="section-title">Cannibalism</div><div class="rule-item special">'+esc(p.cannibalism)+'</div></div>':'')+
     sec('Scavenging',p.scavenging,'')+
     sec('Nesting',p.nesting,'nesting')+
-    sec('Special Rules',p.specialRules,'special')+
+    sec('Reguli Speciale',p.specialRules,'special')+
     sec('RP Notes',p.rpNotes,'');
   renderList();
 }
@@ -462,7 +462,7 @@ var SYS='Ești un asistent pentru un server Path of Titans. Extrage informații 
 async function callClaude(name,text){
   var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:SYS,
-      messages:[{role:'user',content:'Dinosaur: '+name+'\n\nContent:\n'+text.substring(0,3000)}]})});
+      messages:[{role:'user',content:'Dinozaur: '+name+'\n\nConținut:\n'+text.substring(0,3000)}]})});
   var d=await r.json();if(d.error) throw new Error(d.error.message);
   var txt=d.content.filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join('');
   return JSON.parse(txt.replace(/```json|```/g,'').trim());
@@ -470,7 +470,7 @@ async function callClaude(name,text){
 
 async function processAll(onlyNew){
   var toProc=onlyNew?raw.filter(function(r){return !profiles.find(function(p){return p.threadId===r.threadId;});}):raw;
-  if(!toProc.length){document.getElementById('proc-msg').innerHTML='<div style="color:var(--green);font-size:13px">✅ Toate profilurile sunt deja processed!</div>';return;}
+  if(!toProc.length){document.getElementById('proc-msg').innerHTML='<div style="color:var(--green);font-size:13px">✅ Toate profilurile sunt deja procesate!</div>';return;}
   var ba=document.getElementById('bpa'),bn=document.getElementById('bpn');
   ba.disabled=true;bn.disabled=true;
   var log=document.getElementById('plog');log.innerHTML='';
@@ -491,13 +491,13 @@ async function processAll(onlyNew){
     await new Promise(res=>setTimeout(res,600));
   }
   document.getElementById('ppb').style.width='100%';document.getElementById('ppl').textContent='';
-  document.getElementById('proc-msg').innerHTML='<div style="color:var(--green);font-size:13px">✅ '+ok+' processed'+(err?' | <span style="color:var(--accent)">'+err+' erori</span>':'')+'</div>';
+  document.getElementById('proc-msg').innerHTML='<div style="color:var(--green);font-size:13px">✅ '+ok+' procesate'+(err?' | <span style="color:var(--accent)">'+err+' erori</span>':'')+'</div>';
   ba.disabled=false;bn.disabled=false;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────
 function exportMD(){
-  if(!profiles.length){alert('No profiles processed.');return;}
+  if(!profiles.length){alert('Niciun profil procesat.');return;}
   var md='# Crimson Isles — Dino Profiles\n\n---\n\n';
   profiles.forEach(function(p){
     md+='## '+p.name+'\n\n';
