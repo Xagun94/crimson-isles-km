@@ -1,17 +1,16 @@
 name: Discord Profile Sync
 
 on:
-  # Rulează automat la fiecare 2 ore
   schedule:
     - cron: '0 */2 * * *'
-
-  # Permite rulare manuală din GitHub UI (butonul "Run workflow")
   workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -25,9 +24,8 @@ jobs:
       - name: Run Discord sync
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          GITHUB_TOKEN:  ${{ secrets.GIST_TOKEN }}
-          GIST_ID:       ${{ secrets.GIST_ID }}
+          GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO:   ${{ github.repository }}
           GUILD_ID:      ${{ secrets.GUILD_ID }}
-          # ID-urile canalelor tale (carnivore, herbivore, etc.)
           CHANNEL_IDS:   ${{ secrets.CHANNEL_IDS }}
         run: node sync.js
