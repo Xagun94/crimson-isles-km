@@ -1,36 +1,34 @@
 /**
- * Crimson Isles — Discord Forum Sync
- * Salvează datele direct în repo (data/profiles.json)
- * accesibil via raw.githubusercontent.com (CORS activ)
+ * Crimson Isles — Discord Forum Sync + GitHub Pages Deploy
  *
- * Variabile de mediu necesare în GitHub Secrets:
- *   DISCORD_TOKEN   — tokenul tău de utilizator Discord
- *   GITHUB_TOKEN    — ${{ secrets.GITHUB_TOKEN }} (automat în Actions)
- *   GITHUB_REPO     — "Xagun94/crimson-isles-km"
- *   GUILD_ID        — ID-ul serverului Discord
- *   CHANNEL_IDS     — ID-uri canale separate prin virgulă
+ * GitHub Secrets necesare:
+ *   DISCORD_TOKEN  — tokenul de utilizator Discord
+ *   GITHUB_TOKEN   — ${{ secrets.GITHUB_TOKEN }} (automat)
+ *   GITHUB_REPO    — "Xagun94/crimson-isles-km"
+ *   GUILD_ID       — ID server Discord
+ *   CHANNEL_IDS    — ID-uri canale, separate prin virgulă
  */
 
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const GITHUB_TOKEN  = process.env.GITHUB_TOKEN;
 const GITHUB_REPO   = process.env.GITHUB_REPO;
 const GUILD_ID      = process.env.GUILD_ID || '';
 const CHANNEL_IDS   = (process.env.CHANNEL_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
-
-const DELAY_THREADS  = 400;
-const DELAY_CHANNELS = 1000;
+const DELAY_T = 400, DELAY_C = 1000;
 
 function request(options, body) {
   return new Promise((resolve, reject) => {
     const req = https.request(options, res => {
       let data = '';
-      res.on('data', chunk => data += chunk);
+      res.on('data', c => data += c);
       res.on('end', () => {
         if (res.statusCode === 429) {
           const wait = parseInt(res.headers['retry-after'] || '5', 10) * 1000;
-          console.log(`  [Rate limit] Astept ${wait}ms...`);
+          console.log(`  [Rate limit] ${wait}ms...`);
           setTimeout(() => request(options, body).then(resolve).catch(reject), wait);
           return;
         }
@@ -44,176 +42,172 @@ function request(options, body) {
   });
 }
 
-function discordGet(path) {
-  return request({
-    hostname: 'discord.com',
-    path: `/api/v10${path}`,
-    method: 'GET',
-    headers: { 'Authorization': DISCORD_TOKEN, 'Content-Type': 'application/json' }
-  });
+function discord(p) {
+  return request({ hostname:'discord.com', path:`/api/v10${p}`, method:'GET',
+    headers:{'Authorization':DISCORD_TOKEN,'Content-Type':'application/json'} });
 }
 
-function githubRequest(method, path, body) {
-  return request({
-    hostname: 'api.github.com',
-    path,
-    method,
-    headers: {
-      'Authorization': `Bearer ${GITHUB_TOKEN}`,
-      'Accept': 'application/vnd.github+json',
-      'User-Agent': 'CrimsonIsles-KM-Sync/1.0',
-      'Content-Type': 'application/json'
-    }
-  }, body);
+function github(method, p, body) {
+  return request({ hostname:'api.github.com', path:p, method,
+    headers:{'Authorization':`Bearer ${GITHUB_TOKEN}`,'Accept':'application/vnd.github+json',
+      'User-Agent':'CrimsonIsles-KM/1.0','Content-Type':'application/json'} }, body);
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function getAllThreads(channelId) {
   const threads = [], seen = new Set();
   let before = null, hasMore = true;
   while (hasMore) {
     const qs = `?limit=100${before ? `&before=${before}` : ''}`;
-    const res = await discordGet(`/channels/${channelId}/threads/archived/public${qs}`);
+    const res = await discord(`/channels/${channelId}/threads/archived/public${qs}`);
     await sleep(300);
     if (res.status !== 200) break;
     const batch = res.body.threads || [];
     batch.forEach(t => { if (!seen.has(t.id)) { seen.add(t.id); threads.push(t); } });
     hasMore = res.body.has_more === true;
-    before = batch.length ? batch[batch.length - 1].thread_metadata?.archive_timestamp : null;
+    before = batch.length ? batch[batch.length-1].thread_metadata?.archive_timestamp : null;
     if (!before) hasMore = false;
   }
   if (GUILD_ID) {
-    const res = await discordGet(`/guilds/${GUILD_ID}/threads/active`);
+    const res = await discord(`/guilds/${GUILD_ID}/threads/active`);
     await sleep(300);
-    if (res.status === 200) {
-      (res.body.threads || [])
-        .filter(t => t.parent_id === channelId)
-        .forEach(t => { if (!seen.has(t.id)) { seen.add(t.id); threads.push(t); } });
-    }
+    if (res.status === 200)
+      (res.body.threads||[]).filter(t=>t.parent_id===channelId)
+        .forEach(t=>{ if(!seen.has(t.id)){seen.add(t.id);threads.push(t);} });
   }
   return threads;
 }
 
-async function getThreadMessages(threadId) {
-  const messages = [];
-  let before = null, hasMore = true;
+async function getMessages(threadId) {
+  const msgs = []; let before = null, hasMore = true;
   while (hasMore) {
-    const qs = `?limit=100${before ? `&before=${before}` : ''}`;
-    const res = await discordGet(`/channels/${threadId}/messages${qs}`);
+    const res = await discord(`/channels/${threadId}/messages?limit=100${before?`&before=${before}`:''}`);
     await sleep(200);
     if (res.status !== 200) break;
     const batch = Array.isArray(res.body) ? res.body : [];
     if (!batch.length) break;
-    messages.push(...batch);
-    hasMore = batch.length === 100;
-    before = batch[batch.length - 1].id;
+    msgs.push(...batch); hasMore = batch.length === 100;
+    before = batch[batch.length-1].id;
   }
-  return messages
-    .filter(m => m.content?.trim())
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-    .map(m => ({ author: m.author?.username || '', content: m.content, timestamp: m.timestamp }));
+  return msgs.filter(m=>m.content?.trim())
+    .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp))
+    .map(m=>({author:m.author?.username||'',content:m.content,timestamp:m.timestamp}));
 }
 
 async function syncChannel(channelId, existingMap) {
   let channelName = channelId;
-  const infoRes = await discordGet(`/channels/${channelId}`);
-  if (infoRes.status === 200) channelName = infoRes.body.name || channelId;
-  console.log(`\nCanal: #${channelName}`);
+  const info = await discord(`/channels/${channelId}`);
+  if (info.status === 200) channelName = info.body.name || channelId;
+  console.log(`\n📂 #${channelName}`);
   const threads = await getAllThreads(channelId);
-  console.log(`   Thread-uri: ${threads.length}`);
-  const results = [];
-  let newC = 0, updC = 0, skipC = 0;
+  console.log(`   ${threads.length} thread-uri`);
+  const results = []; let nc=0,uc=0,sc=0;
   for (let i = 0; i < threads.length; i++) {
-    const t = threads[i];
-    const existing = existingMap[t.id];
-    const lastMsgId = t.last_message_id || '';
-    if (existing && existing._lastMsgId === lastMsgId && existing.combinedText) {
-      results.push(existing); skipC++; continue;
-    }
-    console.log(`   (${i+1}/${threads.length}) ${existing ? 'UPDATE' : 'NEW'} ${t.name}`);
-    const msgs = await getThreadMessages(t.id);
-    results.push({
-      threadId: t.id, threadName: t.name, channelId, channelName,
-      _lastMsgId: lastMsgId, _syncedAt: new Date().toISOString(),
-      combinedText: msgs.map(m => m.content).join('\n\n'),
-      rawMessages: msgs
-    });
-    existing ? updC++ : newC++;
-    await sleep(DELAY_THREADS);
+    const t = threads[i], ex = existingMap[t.id], lm = t.last_message_id||'';
+    if (ex && ex._lastMsgId === lm && ex.combinedText) { results.push(ex); sc++; continue; }
+    console.log(`   (${i+1}/${threads.length}) ${ex?'🔄':'🆕'} ${t.name}`);
+    const msgs = await getMessages(t.id);
+    results.push({ threadId:t.id, threadName:t.name, channelId, channelName,
+      _lastMsgId:lm, _syncedAt:new Date().toISOString(),
+      combinedText:msgs.map(m=>m.content).join('\n\n'), rawMessages:msgs });
+    ex ? uc++ : nc++;
+    await sleep(DELAY_T);
   }
-  console.log(`   OK: ${newC} noi, ${updC} actualizate, ${skipC} neschimbate`);
+  console.log(`   ✅ ${nc} noi, ${uc} actualizate, ${sc} neschimbate`);
   return results;
 }
 
-async function getFileSha(repo, path) {
-  const res = await githubRequest('GET', `/repos/${repo}/contents/${path}`);
+async function getFileSha(repo, filePath, branch='main') {
+  const res = await github('GET', `/repos/${repo}/contents/${filePath}?ref=${branch}`);
   return res.status === 200 ? res.body.sha : null;
 }
 
-
-async function saveFile(repo, filePath, content, commitMsg) {
-  const sha = await getFileSha(repo, filePath);
-  const payload = {
-    message: commitMsg,
+async function putFile(repo, filePath, content, msg, branch='main') {
+  const sha = await getFileSha(repo, filePath, branch);
+  const res = await github('PUT', `/repos/${repo}/contents/${filePath}`, {
+    message: msg, branch,
     content: Buffer.from(content).toString('base64'),
     ...(sha ? { sha } : {})
-  };
-  const res = await githubRequest('PUT', `/repos/${repo}/contents/${filePath}`, payload);
-  if (res.status !== 200 && res.status !== 201) throw new Error(`Eroare salvare ${filePath}: ${res.status}`);
+  });
+  if (res.status !== 200 && res.status !== 201)
+    console.warn(`   Warn ${filePath} on ${branch}: HTTP ${res.status}`);
+  else console.log(`   ✓ ${filePath} → ${branch}`);
 }
 
-async function saveToRepo(repo, profiles) {
-  const now = new Date().toISOString();
-  const msg = `sync: ${profiles.length} profile-uri [${now}]`;
-
-  // Fișier complet (cu rawMessages) — folosit ca backup/referință
-  await saveFile(repo, 'data/profiles.json',
-    JSON.stringify({ syncedAt: now, totalProfiles: profiles.length, profiles }, null, 2),
-    msg
-  );
-
-  // Fișier slim (fără rawMessages) — folosit de aplicație, ~3x mai mic
-  const slim = profiles.map(function(p) {
-    const { rawMessages, ...rest } = p;
-    return rest;
-  });
-  await saveFile(repo, 'data/profiles-slim.json',
-    JSON.stringify({ syncedAt: now, totalProfiles: slim.length, profiles: slim }, null, 2),
-    msg
-  );
-
-  console.log(`\nSalvat slim: https://raw.githubusercontent.com/${repo}/main/data/profiles-slim.json`);
+async function ensureGhPages(repo) {
+  const res = await github('GET', `/repos/${repo}/branches/gh-pages`);
+  if (res.status === 200) return;
+  console.log('   Creez branch gh-pages...');
+  const main = await github('GET', `/repos/${repo}/git/refs/heads/main`);
+  if (main.status !== 200) throw new Error('Branch main negasit');
+  await github('POST', `/repos/${repo}/git/refs`,
+    { ref:'refs/heads/gh-pages', sha:main.body.object.sha });
 }
 
 async function main() {
-  console.log('Crimson Isles Discord Sync —', new Date().toISOString());
-  if (!DISCORD_TOKEN) throw new Error('DISCORD_TOKEN lipsa!');
-  if (!GITHUB_TOKEN)  throw new Error('GITHUB_TOKEN lipsa!');
-  if (!GITHUB_REPO)   throw new Error('GITHUB_REPO lipsa!');
-  if (!CHANNEL_IDS.length) throw new Error('CHANNEL_IDS lipsa!');
+  console.log('🦖 Crimson Isles Sync —', new Date().toISOString());
+  if (!DISCORD_TOKEN) throw new Error('DISCORD_TOKEN lipsa');
+  if (!GITHUB_TOKEN)  throw new Error('GITHUB_TOKEN lipsa');
+  if (!GITHUB_REPO)   throw new Error('GITHUB_REPO lipsa');
+  if (!CHANNEL_IDS.length) throw new Error('CHANNEL_IDS lipsa');
 
+  // Citim profiluri existente
   const existingMap = {};
   try {
-    const res = await githubRequest('GET', `/repos/${GITHUB_REPO}/contents/data/profiles.json`);
+    const res = await github('GET', `/repos/${GITHUB_REPO}/contents/data/profiles.json`);
     if (res.status === 200 && res.body.content) {
-      const parsed = JSON.parse(Buffer.from(res.body.content, 'base64').toString());
-      (parsed.profiles || parsed).forEach(p => { if (p.threadId) existingMap[p.threadId] = p; });
+      const parsed = JSON.parse(Buffer.from(res.body.content,'base64').toString());
+      (parsed.profiles||parsed).forEach(p=>{ if(p.threadId) existingMap[p.threadId]=p; });
       console.log(`Existente: ${Object.keys(existingMap).length}`);
     }
   } catch(e) { console.log('Prima rulare'); }
 
-  const allProfiles = [];
-  for (const channelId of CHANNEL_IDS) {
-    try {
-      allProfiles.push(...await syncChannel(channelId, existingMap));
-    } catch(e) { console.error(`Eroare canal ${channelId}: ${e.message}`); }
-    await sleep(DELAY_CHANNELS);
+  // Sync Discord
+  const all = [];
+  for (const ch of CHANNEL_IDS) {
+    try { all.push(...await syncChannel(ch, existingMap)); }
+    catch(e) { console.error(`Eroare ${ch}: ${e.message}`); }
+    await sleep(DELAY_C);
+  }
+  console.log(`\n📊 Total: ${all.length} profile-uri`);
+
+  const now = new Date().toISOString();
+  const msg = `sync: ${all.length} profile-uri [${now}]`;
+
+  // Slim (fără rawMessages)
+  const slim = all.map(({rawMessages,...rest})=>rest);
+
+  // Salvează pe main
+  await putFile(GITHUB_REPO, 'data/profiles.json',
+    JSON.stringify({syncedAt:now,totalProfiles:all.length,profiles:all},null,2), msg);
+  await putFile(GITHUB_REPO, 'data/profiles-slim.json',
+    JSON.stringify({syncedAt:now,totalProfiles:slim.length,profiles:slim},null,2), msg);
+
+  // Deploy pe gh-pages
+  console.log('\n📄 Deploy GitHub Pages...');
+  await ensureGhPages(GITHUB_REPO);
+  const slimJson = JSON.stringify({syncedAt:now,totalProfiles:slim.length,profiles:slim},null,2);
+  await putFile(GITHUB_REPO, 'profiles-slim.json', slimJson, msg, 'gh-pages');
+
+  // Copiază index.html pe gh-pages
+  const indexPath = path.join(__dirname, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    const html = fs.readFileSync(indexPath, 'utf8');
+    await putFile(GITHUB_REPO, 'index.html', html, msg, 'gh-pages');
+  } else {
+    console.warn('   index.html nu a fost găsit lângă sync.js — nu s-a deploiat UI-ul');
   }
 
-  console.log(`\nTotal: ${allProfiles.length} profile-uri`);
-  await saveToRepo(GITHUB_REPO, allProfiles);
-  console.log('Sync complet!');
+  // Activează GitHub Pages dacă nu e activ
+  const pages = await github('GET', `/repos/${GITHUB_REPO}/pages`);
+  if (pages.status === 404) {
+    await github('POST', `/repos/${GITHUB_REPO}/pages`, {source:{branch:'gh-pages',path:'/'}});
+    console.log('   GitHub Pages activat');
+  }
+
+  const [owner, repoName] = GITHUB_REPO.split('/');
+  console.log(`\n✨ Gata! Aplicația KM: https://${owner.toLowerCase()}.github.io/${repoName}/`);
 }
 
 main().catch(e => { console.error('EROARE:', e.message); process.exit(1); });
