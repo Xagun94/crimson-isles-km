@@ -176,9 +176,7 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0;overflow:h
 
 <header>
   <div class="logo">Crimson Isle <span>Dino</span> Profiles</div>
-  <div class="header-right">
-    <div class="sync-indicator">
-      <div class="sync-dot" id="sdot"></div>
+  
       <span id="stxt">—</span>
     </div>
     
@@ -211,8 +209,8 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0;overflow:h
     <div class="state" id="empty-state">
       <div class="state-icon">🦖</div>
       <div class="state-title">No profiles loaded</div>
-      <div class="state-sub">Click <strong>Config</strong> to set the data URL, then <strong>Sync</strong>. Profiles are processed automatically by GitHub Actions.</div>
-      <button class="btn primary" onclick="showConfig()">⚙ Configure</button>
+      <div class="state-sub">Profiles are loaded automatically.</div>
+      
     </div>
     <div class="state" id="loading-state" style="display:none">
       <div class="spinner-lg"></div>
@@ -225,7 +223,7 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0;overflow:h
           <h1 id="grid-title">Profile</h1>
           <div class="grid-count" id="grid-count"></div>
         </div>
-        <button class="btn sm" onclick="exportMD()">↓ Export MD</button>
+        
       </div>
       <div class="grid" id="card-grid"></div>
     </div>
@@ -254,23 +252,7 @@ main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0;overflow:h
   </div>
 </main>
 
-<!-- Config panel -->
-<div class="config-panel" id="config-panel">
-  <div class="config-box">
-    <div class="config-title">Sync Configuration</div>
-    <div class="config-field">
-      <label>URL profiles-slim.json</label>
-      <input type="text" id="cfg-url" placeholder="https://raw.githubusercontent.com/Xagun94/crimson-isles-km/main/data/profiles-slim.json"/>
-    </div>
-    <div class="config-hint">
-      The URL of file <code style="font-family:'DM Mono',monospace;background:var(--bg3);padding:1px 5px;border-radius:3px">data/profiles-slim.json</code> from your GitHub repo.
-    </div>
-    <div id="cfg-msg"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" onclick="closeConfig()">Cancel</button>
-      <button class="btn primary" onclick="saveConfig()">Save & Sync</button>
-    </div>
-  </div>
+
 </div>
 
 <script>
