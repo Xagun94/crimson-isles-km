@@ -532,10 +532,26 @@ function exportMD(){
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 load();
-// Auto-load processed profiles on first visit
-var BASE='https://xagun94.github.io/crimson-isles-km/processed-profiles.json';
-localStorage.setItem(URL_KEY, BASE);
-doSync();
+// Always auto-load processed profiles on page open
+(async function(){
+  var URL='https://xagun94.github.io/crimson-isles-km/processed-profiles.json';
+  try{
+    document.getElementById('empty-state').style.display='none';
+    document.getElementById('loading-state').style.display='flex';
+    var res=await fetch(URL+'?t='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var data=await res.json();
+    var incoming=data.profiles||data;
+    if(!Array.isArray(incoming)||!incoming.length) throw new Error('No profiles');
+    profiles=incoming; raw=incoming;
+    var at=data.syncedAt?new Date(data.syncedAt).toLocaleString('en-GB'):'?';
+    renderAll(); showGrid();
+  }catch(e){
+    document.getElementById('loading-state').style.display='none';
+    document.getElementById('empty-state').style.display='flex';
+    document.querySelector('.state-sub').textContent='Error loading profiles: '+e.message;
+  }
+})();
 </script>
 </body>
 </html>
