@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Crimson Isles — Dino KM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0a0a0a;
+  --bg2: #111111;
+  --bg3: #181818;
+  --border: #222222;
+  --border2: #2a2a2a;
+  --text: #e8e4dc;
+  --text2: #7a7570;
+  --text3: #4a4642;
+  --accent: #c8453a;
+  --accent2: #e05a30;
+  --gold: #c8973a;
+  --green: #3a8c5a;
+  --blue: #3a6ac8;
+  --r: 6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5}
+body{min-height:100vh;display:flex;flex-direction:column}
+
+/* Noise texture overlay */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+/* Header */
+header{position:sticky;top:0;z-index:100;background:rgba(10,10,10,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em;color:var(--text)}
+.logo span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:10px}
+.sync-indicator{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3)}
+.sync-dot.ok{background:var(--green)}.sync-dot.err{background:var(--accent)}.sync-dot.spin{background:var(--gold);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--border2);color:var(--text);background:var(--bg3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#b03a30}
+.btn.sm{padding:5px 10px;font-size:11px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* Layout */
+main{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:0}
+
+/* Sidebar */
+.sidebar{border-right:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-section{padding:16px;border-bottom:1px solid var(--border)}
+.sidebar-title{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.search-wrap{position:relative}
+.search-wrap input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px 8px 30px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+.search-wrap input:focus{border-color:var(--border2)}
+.search-wrap::before{content:'⌕';position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;pointer-events:none}
+.filter-group{display:flex;flex-direction:column;gap:2px}
+.filter-item{padding:6px 8px;border-radius:4px;cursor:pointer;font-size:12px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;transition:all .1s;user-select:none}
+.filter-item:hover{background:var(--bg3);color:var(--text)}
+.filter-item.active{background:var(--bg3);color:var(--text);font-weight:500}
+.filter-item .count{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
+.filter-item.active .count{color:var(--text2)}
+
+/* Tier dot colors */
+.tier-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.td-apex{background:#ef4444}.td-sub{background:#f59e0b}.td-high{background:#f59e0b}
+.td-mid{background:#3b82f6}.td-low{background:#22c55e}
+.td-aq{background:#06b6d4}.td-x{background:var(--text3)}
+
+.sidebar-nav{flex:1;overflow-y:auto;padding:8px}
+.dino-list-item{padding:8px 10px;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .1s}
+.dino-list-item:hover{background:var(--bg3)}
+.dino-list-item.active{background:var(--bg3);border-left:2px solid var(--accent)}
+.dino-list-item.active{padding-left:8px}
+.dino-name-sm{font-size:13px;color:var(--text);flex:1;font-weight:400}
+.dino-tier-sm{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
+
+/* Content area */
+.content{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+
+/* Grid view */
+.grid-header{padding:20px 24px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.grid-header h1{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;color:var(--text)}
+.grid-count{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--border)}
+.card{background:var(--bg2);padding:16px;cursor:pointer;transition:background .12s;position:relative;overflow:hidden}
+.card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(200,69,58,.04) 0%,transparent 60%);opacity:0;transition:opacity .2s}
+.card:hover{background:var(--bg3)}
+.card:hover::after{opacity:1}
+.card-tier{font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.card-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.04em;color:var(--text);line-height:1;margin-bottom:6px}
+.card-meta{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
+.card-channel{font-size:10px;color:var(--text3);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+
+/* Detail view */
+.detail{padding:32px;max-width:720px;display:none;flex-direction:column;gap:24px}
+.detail.active{display:flex}
+.detail-back{color:var(--text2);font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-bottom:8px;background:none;border:none;font-family:'DM Sans',sans-serif}
+.detail-back:hover{color:var(--text)}
+.detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.detail-title{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:.04em;line-height:1;color:var(--text)}
+.detail-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:500;border:1px solid}
+.badge-apex{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#f87171}
+.badge-sub{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fbbf24}
+.badge-mid{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.3);color:#60a5fa}
+.badge-low{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#4ade80}
+.badge-x{background:var(--bg3);border-color:var(--border2);color:var(--text2)}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.stat-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.stat-value{font-size:15px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace}
+
+.section{border-top:1px solid var(--border);padding-top:20px}
+.section-title{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;font-weight:500}
+.rule-list{display:flex;flex-direction:column;gap:6px}
+.rule-item{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:13px;color:var(--text2);line-height:1.6;border-left:3px solid var(--border2)}
+.rule-item.hunting{border-left-color:var(--accent)}
+.rule-item.social{border-left-color:var(--gold)}
+.rule-item.nesting{border-left-color:var(--green)}
+.rule-item.special{border-left-color:var(--blue)}
+.desc-text{font-size:14px;color:var(--text2);line-height:1.7}
+
+/* Empty / loading states */
+.state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;flex:1;padding:48px;text-align:center}
+.state-icon{font-size:48px;opacity:.3}
+.state-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;color:var(--text2)}
+.state-sub{font-size:13px;color:var(--text3);max-width:320px;line-height:1.6}
+.spinner-lg{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Config panel */
+.config-panel{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.config-panel.open{display:flex}
+.config-box{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:28px;width:100%;max-width:500px;display:flex;flex-direction:column;gap:16px}
+.config-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em}
+.config-field{display:flex;flex-direction:column;gap:6px}
+.config-field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.config-field input{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;color:var(--text);font-size:13px;font-family:'DM Mono',monospace;outline:none;width:100%}
+.config-field input:focus{border-color:var(--accent)}
+.config-hint{font-size:12px;color:var(--text3);line-height:1.6}
+.config-msg{font-size:13px;padding:8px 12px;border-radius:var(--r)}
+.config-msg.ok{background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
+.config-msg.err{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+
+/* Process panel */
+.process-panel{padding:24px;display:none;flex-direction:column;gap:16px;max-width:600px}
+.process-panel.active{display:flex}
+.progress-wrap{background:var(--bg3);border-radius:999px;height:4px;overflow:hidden}
+.progress-bar{background:var(--accent);height:100%;border-radius:999px;transition:width .3s}
+.process-log{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+.log-item{font-size:12px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;color:var(--text2)}
+.log-item.ok{color:var(--green)}.log-item.err{color:var(--accent)}.log-item.proc{color:var(--gold)}
+
+/* Tabs */
+.view-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 24px}
+.view-tab{padding:12px 16px;font-size:12px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:'DM Sans',sans-serif}
+.view-tab:hover{color:var(--text2)}
+.view-tab.active{color:var(--text);border-bottom-color:var(--accent)}
+
+@media(max-width:640px){
+  main{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .detail{padding:16px}
+  .detail-title{font-size:32px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Crimson <span>Isles</span> KM</div>
+  <div class="header-right">
+    <div class="sync-indicator">
+      <div class="sync-dot" id="sdot"></div>
+      <span id="stxt">—</span>
+    </div>
+    <button class="btn sm" onclick="showConfig()">⚙ Config</button>
+    <button class="btn sm" onclick="showProcess()">✦ Procesează</button>
+    <button class="btn sm primary" id="btn-sync" onclick="doSync()" disabled>↻ Sync</button>
+  </div>
+</header>
+
+<main>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="search-wrap">
+        <input type="text" id="search" placeholder="Caută dinozaur..." oninput="filterAndRender()"/>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Tier</div>
+      <div class="filter-group" id="tier-filter"></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Canal</div>
+      <div class="filter-group" id="ch-filter"></div>
+    </div>
+    <div class="sidebar-nav" id="dino-list"></div>
+  </aside>
+
+  <!-- Content -->
+  <div class="content" id="content">
+    <div class="state" id="empty-state">
+      <div class="state-icon">🦖</div>
+      <div class="state-title">Niciun profil încărcat</div>
+      <div class="state-sub">Click pe <strong>Config</strong> pentru a configura URL-ul datelor, apoi <strong>Sync</strong> pentru a le încărca.</div>
+      <button class="btn primary" onclick="showConfig()">⚙ Configurează</button>
+    </div>
+    <div class="state" id="loading-state" style="display:none">
+      <div class="spinner-lg"></div>
+      <div class="state-title">Se sincronizează...</div>
+      <div class="state-sub" id="loading-sub">Se preiau datele...</div>
+    </div>
+    <div id="grid-view" style="display:none;flex-direction:column">
+      <div class="grid-header">
+        <div>
+          <h1 id="grid-title">Profile</h1>
+          <div class="grid-count" id="grid-count"></div>
+        </div>
+        <button class="btn sm" onclick="exportMD()">↓ Export MD</button>
+      </div>
+      <div class="grid" id="card-grid"></div>
+    </div>
+    <div class="detail" id="detail-view">
+      <button class="detail-back" onclick="closeDetail()">← Înapoi la grilă</button>
+    </div>
+    <div class="process-panel" id="process-view">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em">Procesare Claude</div>
+        <button class="detail-back" onclick="closeProcess()">← Înapoi</button>
+      </div>
+      <p style="font-size:13px;color:var(--text2)">Claude extrage din fiecare profil brut: tier, group limit, combat weight, hunting, cannibalism, nesting, reguli speciale, RP notes.</p>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" id="bpa" onclick="processAll(false)">✦ Procesează toate ↗</button>
+        <button class="btn" id="bpn" onclick="processAll(true)">✦ Doar profile noi ↗</button>
+      </div>
+      <div class="progress-wrap"><div class="progress-bar" id="ppb" style="width:0%"></div></div>
+      <div style="font-size:12px;color:var(--text3)" id="ppl"></div>
+      <div class="process-log" id="plog"></div>
+      <div id="proc-msg"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Config panel -->
+<div class="config-panel" id="config-panel">
+  <div class="config-box">
+    <div class="config-title">Configurare Sync</div>
+    <div class="config-field">
+      <label>URL profiles-slim.json</label>
+      <input type="text" id="cfg-url" placeholder="https://raw.githubusercontent.com/Xagun94/crimson-isles-km/main/data/profiles-slim.json"/>
+    </div>
+    <div class="config-hint">
+      URL-ul fișierului <code style="font-family:'DM Mono',monospace;background:var(--bg3);padding:1px 5px;border-radius:3px">data/profiles-slim.json</code> din repo-ul tău GitHub.
+    </div>
+    <div id="cfg-msg"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeConfig()">Anulează</button>
+      <button class="btn primary" onclick="saveConfig()">Salvează & Sync</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+var raw=[], profiles=[], activeTier='all', activeCh='all', activeProfile=null;
+var URL_KEY='ci_url', DATA_KEY='ci_data';
+
+function save(){try{localStorage.setItem(DATA_KEY,JSON.stringify({raw,profiles}));}catch(e){}}
+function load(){
+  var u=localStorage.getItem(URL_KEY)||'';
+  if(u) document.getElementById('cfg-url').value=u;
+  try{var d=JSON.parse(localStorage.getItem(DATA_KEY)||'{}');raw=d.raw||[];profiles=d.profiles||[];}catch(e){}
+  if(u){document.getElementById('btn-sync').disabled=false;}
+  if(profiles.length>0){renderAll();showGrid();}
+}
+
+// ── Sync ──────────────────────────────────────────────────────────────────────
+function setSt(state,text){
+  var el=document.getElementById('sdot');
+  el.className='sync-dot '+(state==='ok'?'ok':state==='err'?'err':state==='spin'?'spin':'');
+  document.getElementById('stxt').textContent=text;
+}
+
+async function doSync(){
+  var url=localStorage.getItem(URL_KEY);
+  if(!url) return showConfig();
+  setSt('spin','Sincronizez...');
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('loading-state').style.display='flex';
+  document.getElementById('grid-view').style.display='none';
+  try{
+    var res=await fetch(url+'?t='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var data=await res.json();
+    var newRaw=data.profiles||data;
+    if(!Array.isArray(newRaw)||!newRaw.length) throw new Error('Date invalide sau goale');
+    // Merge inteligent
+    var exMap={};raw.forEach(function(p){if(p.threadId) exMap[p.threadId]=p;});
+    raw=newRaw.map(function(p){var ex=exMap[p.threadId];return(ex&&ex._syncedAt===p._syncedAt)?ex:p;});
+    var at=data.syncedAt?new Date(data.syncedAt).toLocaleString('ro-RO'):'?';
+    save();setSt('ok',at);renderAll();showGrid();
+  }catch(e){
+    setSt('err',e.message);
+    document.getElementById('loading-state').style.display='none';
+    document.getElementById('empty-state').style.display='flex';
+  }
+}
+
+// ── Config ────────────────────────────────────────────────────────────────────
+function showConfig(){document.getElementById('config-panel').classList.add('open');}
+function closeConfig(){document.getElementById('config-panel').classList.remove('open');}
+function saveConfig(){
+  var url=document.getElementById('cfg-url').value.trim();
+  if(!url){document.getElementById('cfg-msg').innerHTML='<div class="config-msg err">Introdu URL-ul.</div>';return;}
+  localStorage.setItem(URL_KEY,url);
+  document.getElementById('btn-sync').disabled=false;
+  closeConfig();doSync();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function tierClass(t){
+  if(!t) return 'td-x';var l=t.toLowerCase();
+  if(l==='apex') return 'td-apex';if(l.includes('sub')) return 'td-sub';
+  if(l==='high') return 'td-high';if(l==='mid') return 'td-mid';
+  if(l==='low') return 'td-low';if(l.includes('aquatic')||l.includes('semi')||l.includes('fly')) return 'td-aq';
+  return 'td-x';
+}
+function badgeClass(t){
+  if(!t) return 'badge-x';var l=t.toLowerCase();
+  if(l==='apex') return 'badge-apex';if(l.includes('sub')) return 'badge-sub';
+  if(l==='high') return 'badge-sub';if(l==='mid') return 'badge-mid';
+  if(l==='low') return 'badge-low';return 'badge-x';
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function getFiltered(){
+  var q=(document.getElementById('search').value||'').toLowerCase();
+  return profiles.filter(function(p){
+    return (!q||(p.name||'').toLowerCase().includes(q)||(p.tier||'').toLowerCase().includes(q))
+      &&(activeTier==='all'||(p.tier||'')===activeTier)
+      &&(activeCh==='all'||(p.channelName||p.channelId||'')===activeCh);
+  });
+}
+
+function renderAll(){
+  renderFilters();renderList();renderGrid();
+}
+
+function renderFilters(){
+  // Tiers
+  var tiers={};
+  profiles.forEach(function(p){var t=p.tier||'?';tiers[t]=(tiers[t]||0)+1;});
+  var tf=document.getElementById('tier-filter');
+  tf.innerHTML='<div class="filter-item'+(activeTier==='all'?' active':'')+'" onclick="setTier(\'all\')"><span>Toate</span><span class="count">'+profiles.length+'</span></div>';
+  Object.keys(tiers).sort().forEach(function(t){
+    tf.innerHTML+='<div class="filter-item'+(activeTier===t?' active':'')+'" onclick="setTier(\''+esc(t)+'\')"><span style="display:flex;align-items:center;gap:6px"><span class="tier-dot '+tierClass(t)+'"></span>'+esc(t)+'</span><span class="count">'+tiers[t]+'</span></div>';
+  });
+  // Channels
+  var chs={};
+  profiles.forEach(function(p){var c=p.channelName||p.channelId||'?';chs[c]=(chs[c]||0)+1;});
+  var cf=document.getElementById('ch-filter');
+  cf.innerHTML='<div class="filter-item'+(activeCh==='all'?' active':'')+'" onclick="setCh(\'all\')"><span>Toate</span><span class="count">'+profiles.length+'</span></div>';
+  Object.keys(chs).sort().forEach(function(c){
+    cf.innerHTML+='<div class="filter-item'+(activeCh===c?' active':'')+'" onclick="setCh(\''+esc(c)+'\')"><span>'+esc(c.replace('species-profiles-',''))+'</span><span class="count">'+chs[c]+'</span></div>';
+  });
+}
+
+function renderList(){
+  var filtered=getFiltered();
+  var html=filtered.map(function(p,i){
+    var ri=profiles.indexOf(p);
+    return '<div class="dino-list-item'+(activeProfile===ri?' active':'')+'" onclick="openDetail('+ri+')"><span class="tier-dot '+tierClass(p.tier)+'"></span><span class="dino-name-sm">'+esc(p.name||'?')+'</span><span class="dino-tier-sm">'+(p.slots||'')+'</span></div>';
+  }).join('');
+  document.getElementById('dino-list').innerHTML=html||'<div style="padding:8px;font-size:12px;color:var(--text3)">Niciun rezultat</div>';
+}
+
+function renderGrid(){
+  var filtered=getFiltered();
+  document.getElementById('grid-count').textContent=filtered.length+' profile-uri';
+  var html=filtered.map(function(p){
+    var ri=profiles.indexOf(p);
+    return '<div class="card" onclick="openDetail('+ri+')">'+
+      '<div class="card-tier"><span class="tier-dot '+tierClass(p.tier)+'"></span><span style="color:var(--text2)">'+esc(p.tier||'?')+'</span></div>'+
+      '<div class="card-name">'+esc(p.name||'?')+'</div>'+
+      '<div class="card-meta">'+(p.combatWeight?p.combatWeight+' CW':'')+(p.slots?' · '+p.slots:'')+'</div>'+
+      (p.channelName?'<div class="card-channel">'+esc(p.channelName.replace('species-profiles-',''))+'</div>':'')+
+      '</div>';
+  }).join('');
+  document.getElementById('card-grid').innerHTML=html||'<div style="padding:32px;color:var(--text3);grid-column:1/-1;text-align:center">Niciun profil procesat. Click pe "Procesează".</div>';
+}
+
+function setTier(t){activeTier=t;filterAndRender();}
+function setCh(c){activeCh=c;filterAndRender();}
+function filterAndRender(){renderFilters();renderList();renderGrid();}
+
+// ── Detail ────────────────────────────────────────────────────────────────────
+function openDetail(idx){
+  activeProfile=idx;var p=profiles[idx];
+  var dv=document.getElementById('detail-view');
+  document.getElementById('grid-view').style.display='none';
+  dv.classList.add('active');
+  function sec(title,arr,cls){if(!arr||!arr.length)return '';return '<div class="section"><div class="section-title">'+title+'</div><div class="rule-list">'+arr.map(function(x){return '<div class="rule-item '+(cls||'')+'">'+esc(x)+'</div>';}).join('')+'</div></div>';}
+  var stats='';
+  if(p.combatWeight) stats+='<div class="stat-box"><div class="stat-label">Combat Weight</div><div class="stat-value">'+esc(p.combatWeight)+'</div></div>';
+  if(p.passiveGrowthTime) stats+='<div class="stat-box"><div class="stat-label">Passive Growth</div><div class="stat-value">'+esc(p.passiveGrowthTime)+'</div></div>';
+  if(p.lifestyle) stats+='<div class="stat-box"><div class="stat-label">Lifestyle</div><div class="stat-value">'+esc(p.lifestyle)+'</div></div>';
+  if(p.slots) stats+='<div class="stat-box"><div class="stat-label">Slot Tier</div><div class="stat-value">'+esc(p.slots)+'</div></div>';
+
+  dv.innerHTML='<button class="detail-back" onclick="closeDetail()">← Înapoi la grilă</button>'+
+    '<div class="detail-header"><div>'+
+    '<div class="detail-title">'+esc(p.name||'?')+'</div>'+
+    '<div class="detail-badges">'+
+    '<span class="badge '+badgeClass(p.tier)+'">'+(p.tier||'?')+'</span>'+
+    (p.channelName?'<span class="badge badge-x">'+esc(p.channelName.replace('species-profiles-',''))+'</span>':'')+
+    '</div></div></div>'+
+    (stats?'<div class="stats-grid">'+stats+'</div>':'')+
+    (p.description?'<div class="desc-text">'+esc(p.description)+'</div>':'')+
+    sec('Group Limit',p.groupLimit,'social')+
+    sec('Hunting Targets',p.hunting,'hunting')+
+    (p.cannibalism?'<div class="section"><div class="section-title">Cannibalism</div><div class="rule-item special">'+esc(p.cannibalism)+'</div></div>':'')+
+    sec('Scavenging',p.scavenging,'')+
+    sec('Nesting',p.nesting,'nesting')+
+    sec('Reguli Speciale',p.specialRules,'special')+
+    sec('RP Notes',p.rpNotes,'');
+  renderList();
+}
+function closeDetail(){
+  activeProfile=null;
+  document.getElementById('detail-view').classList.remove('active');
+  document.getElementById('grid-view').style.display='flex';
+  renderList();
+}
+
+// ── Views ─────────────────────────────────────────────────────────────────────
+function showGrid(){
+  document.getElementById('loading-state').style.display='none';
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('detail-view').classList.remove('active');
+  document.getElementById('process-view').classList.remove('active');
+  document.getElementById('grid-view').style.display='flex';
+  renderAll();
+}
+function showProcess(){
+  document.getElementById('grid-view').style.display='none';
+  document.getElementById('detail-view').classList.remove('active');
+  document.getElementById('process-view').classList.add('active');
+}
+function closeProcess(){showGrid();}
+
+// ── Claude processing ─────────────────────────────────────────────────────────
+var SYS='Ești un asistent pentru un server Path of Titans. Extrage informații din profilul unui dinozaur și returnează DOAR JSON valid, fără markdown, fără backtick-uri.\nStructura exactă:\n{"name":"string","tier":"string","slots":"string","combatWeight":"string","passiveGrowthTime":"string","lifestyle":"string","description":"string","groupLimit":["string"],"hunting":["string"],"scavenging":["string"],"cannibalism":"string","nesting":["string"],"specialRules":["string"],"rpNotes":["string"]}\nDacă un câmp nu există, folosește "" sau []. tier = Apex/Sub-Apex/High/Mid/Low/Semi-Aquatic/Aquatic/Flying/Herbivore.';
+
+async function callClaude(name,text){
+  var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:SYS,
+      messages:[{role:'user',content:'Dinozaur: '+name+'\n\nConținut:\n'+text.substring(0,3000)}]})});
+  var d=await r.json();if(d.error) throw new Error(d.error.message);
+  var txt=d.content.filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join('');
+  return JSON.parse(txt.replace(/```json|```/g,'').trim());
+}
+
+async function processAll(onlyNew){
+  var toProc=onlyNew?raw.filter(function(r){return !profiles.find(function(p){return p.threadId===r.threadId;});}):raw;
+  if(!toProc.length){document.getElementById('proc-msg').innerHTML='<div style="color:var(--green);font-size:13px">✅ Toate profilurile sunt deja procesate!</div>';return;}
+  var ba=document.getElementById('bpa'),bn=document.getElementById('bpn');
+  ba.disabled=true;bn.disabled=true;
+  var log=document.getElementById('plog');log.innerHTML='';
+  var ok=0,err=0;
+  for(var i=0;i<toProc.length;i++){
+    var r=toProc[i];
+    document.getElementById('ppb').style.width=Math.round(i/toProc.length*100)+'%';
+    document.getElementById('ppl').textContent='('+(i+1)+'/'+toProc.length+') '+r.threadName;
+    var li=document.createElement('div');li.className='log-item proc';li.textContent='⟳ '+r.threadName;log.appendChild(li);log.scrollTop=log.scrollHeight;
+    try{
+      var p=await callClaude(r.threadName,r.combinedText||'');
+      p.threadId=r.threadId;p.channelId=r.channelId;p.channelName=r.channelName;p.rawSource=r.combinedText;
+      var idx=profiles.findIndex(function(x){return x.threadId===p.threadId;});
+      if(idx>=0) profiles[idx]=p; else profiles.push(p);
+      ok++;li.className='log-item ok';li.textContent='✓ '+r.threadName;
+    }catch(e){err++;li.className='log-item err';li.textContent='✗ '+r.threadName+' — '+e.message.substring(0,40);}
+    save();
+    await new Promise(res=>setTimeout(res,600));
+  }
+  document.getElementById('ppb').style.width='100%';document.getElementById('ppl').textContent='';
+  document.getElementById('proc-msg').innerHTML='<div style="color:var(--green);font-size:13px">✅ '+ok+' procesate'+(err?' | <span style="color:var(--accent)">'+err+' erori</span>':'')+'</div>';
+  ba.disabled=false;bn.disabled=false;
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportMD(){
+  if(!profiles.length){alert('Niciun profil procesat.');return;}
+  var md='# Crimson Isles — Dino Profiles\n\n---\n\n';
+  profiles.forEach(function(p){
+    md+='## '+p.name+'\n\n';
+    if(p.tier) md+='**Tier:** '+p.tier+'  \n';
+    if(p.slots) md+='**Slots:** '+p.slots+'  \n';
+    if(p.combatWeight) md+='**Combat Weight:** '+p.combatWeight+'  \n';
+    if(p.lifestyle) md+='**Lifestyle:** '+p.lifestyle+'  \n';
+    if(p.description) md+='\n'+p.description+'\n';
+    function sec(t,a){if(!a||!a.length)return '';return '\n### '+t+'\n'+a.map(function(x){return '- '+x;}).join('\n')+'\n';}
+    md+=sec('Group Limit',p.groupLimit)+sec('Hunting',p.hunting);
+    if(p.cannibalism) md+='\n**Cannibalism:** '+p.cannibalism+'\n';
+    md+=sec('Nesting',p.nesting)+sec('Special Rules',p.specialRules)+sec('RP Notes',p.rpNotes);
+    md+='\n---\n\n';
+  });
+  var b=new Blob([md],{type:'text/markdown'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='crimson_isles_profiles.md';a.click();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+load();
+if(profiles.length===0&&!localStorage.getItem(URL_KEY)){
+  // prima deschidere
+} else if(localStorage.getItem(URL_KEY)&&profiles.length===0){
+  doSync();
+}
+</script>
+</body>
+</html>
