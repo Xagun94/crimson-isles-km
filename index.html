@@ -530,11 +530,10 @@ function exportMD(){
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 load();
-if(profiles.length===0&&!localStorage.getItem(URL_KEY)){
-  // prima deschidere
-} else if(localStorage.getItem(URL_KEY)&&profiles.length===0){
-  doSync();
-}
+// Auto-load processed profiles on first visit
+var BASE='https://xagun94.github.io/crimson-isles-km/processed-profiles.json';
+localStorage.setItem(URL_KEY, BASE);
+doSync();
 </script>
 </body>
 </html>
